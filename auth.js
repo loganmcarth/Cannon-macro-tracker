@@ -28,3 +28,29 @@ async function signIn() {
         alert("Logged in!");
     }
 }
+
+async function saveEntry(name, calories, protein) {
+    const { error } = await supabaseClient
+        .from("entries")
+        .insert({ name, calories, protein });
+    if (error) alert(error.message);
+}
+
+async function loadTodayEntries() {
+    const today = new Date().toISOString().slice(0, 10);
+    const { data, error } = await supabaseClient
+        .from("entries")
+        .select("*")
+        .eq("date", today)
+        .order("created_at");
+    if (error) { alert(error.message); return []; }
+    return data;
+}
+
+async function loadHistory() {
+    const { data, error } = await supabaseClient
+        .from("entries")
+        .select("*")
+        .order("date", { ascending: false });
+    return error ? [] : data;
+}

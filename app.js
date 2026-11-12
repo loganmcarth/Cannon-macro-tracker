@@ -1,72 +1,24 @@
+// =====================================================
+// Cannon Macro Tracker - app code (Supabase version)
+// Requires auth.js to load first (it creates supabaseClient)
+// =====================================================
+
 const now = new Date();
 
 const today =
-    `${now.getFullYear()}-${String(
-        now.getMonth() + 1
-    ).padStart(2, "0")}-${String(
-        now.getDate()
-    ).padStart(2, "0")}`;
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
-let dailyData = JSON.parse(
-    localStorage.getItem("dailyData")
-) || {};
+// ---------- STATE (all of this comes from Supabase now) ----------
 
-let totals = JSON.parse(
-    localStorage.getItem("totals")
-) || {
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0
-};
+let currentUserId = null;
 
-let addedFoods = JSON.parse(
-    localStorage.getItem("addedFoods")
-) || [];
+let allEntries = [];      // every food entry for this user
+let dailyData = {};       // built from allEntries, used by history + stats
+let addedFoods = [];      // today's entries
+let totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
 
-const savedDate =
-    localStorage.getItem("currentDate");
-
-if (savedDate !== today) {
-
-    localStorage.setItem(
-        "currentDate",
-        today
-    );
-
-    totals = {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0
-    };
-
-    addedFoods = [];
-
-    localStorage.setItem(
-        "totals",
-        JSON.stringify(totals)
-    );
-
-    localStorage.setItem(
-        "addedFoods",
-        JSON.stringify([])
-    );
-}
-
-let calorieGoal =
-    Number(
-        localStorage.getItem(
-            "calorieGoal"
-        )
-    ) || 2500;
-
-let proteinGoal =
-    Number(
-        localStorage.getItem(
-            "proteinGoal"
-        )
-    ) || 180;
+let calorieGoal = 2500;
+let proteinGoal = 180;
 
 const foods = {
     "Buffalo Chicken Tacos": {
@@ -91,7 +43,161 @@ const foods = {
     }
 };
 
-function addFood() {
+// ---------- HELPERS ----------
+
+function escapeHTML(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Rebuilds dailyData, addedFoods and totals from allEntries
+function rebuildFromEntries() {
+
+    dailyData = {};
+
+    allEntries.forEach(entry => {
+
+        if (!dailyData[entry.date]) {
+            dailyData[entry.date] = {
+                totals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+                foods: []
+            };
+        }
+
+        const day = dailyData[entry.date];
+
+        day.foods.push(entry);
+        day.totals.calories += entry.calories;
+        day.totals.protein += entry.protein;
+        day.totals.carbs += entry.carbs;
+        day.totals.fat += entry.fat;
+    });
+
+    addedFoods = allEntries.filter(entry => entry.date === today);
+
+    totals = dailyData[today]
+        ? dailyData[today].totals
+        : { calories: 0, protein: 0, carbs: 0, fat: 0 };
+}
+
+// Redraws everything that exists on the current page
+function refreshViews() {
+
+    rebuildFromEntries();
+
+    updateTotals();
+    renderAddedFoods();
+
+    if (document.getElementById("history")) {
+        renderHistory();
+    }
+
+    if (document.getElementById("avgCalories")) {
+        renderStats();
+    }
+}
+
+// ---------- LOADING DATA ----------
+
+async function loadData() {
+
+    const { data: entries, error } = await supabaseClient
+        .from("entries")
+        .select("*")
+        .order("date", { ascending: true })
+        .order("created_at", { ascending: true });
+
+    if (error) {
+        alert("Could not load your data: " + error.message);
+        return;
+    }
+
+    allEntries = entries;
+
+    const { data: goals } = await supabaseClient
+        .from("settings")
+        .select("*")
+        .maybeSingle();
+
+    if (goals) {
+        calorieGoal = goals.calorie_goal;
+        proteinGoal = goals.protein_goal;
+    }
+
+    refreshViews();
+}
+
+// ---------- LOGIN STATE ----------
+
+async function handleSession(session) {
+
+    const userId = session ? session.user.id : null;
+
+    // ignore repeat events for the same user
+    if (userId === currentUserId) return;
+
+    currentUserId = userId;
+
+    const authSection = document.getElementById("authSection");
+
+    if (authSection) {
+        authSection.style.display = userId ? "none" : "block";
+    }
+
+    if (userId) {
+
+        await loadData();
+
+    } else {
+
+        // logged out: clear everything on screen
+        allEntries = [];
+        calorieGoal = 2500;
+        proteinGoal = 180;
+        refreshViews();
+    }
+}
+
+// Fires once on page load (with any saved session) and again on login/logout
+supabaseClient.auth.onAuthStateChange((event, session) => {
+    setTimeout(() => handleSession(session), 0);
+});
+
+// ---------- ADDING FOOD ----------
+
+async function addFoodEntry(name, macros) {
+
+    if (!currentUserId) {
+        alert("Please log in first");
+        return null;
+    }
+
+    const { data, error } = await supabaseClient
+        .from("entries")
+        .insert({
+            name: name,
+            date: today,
+            calories: Math.round(macros.calories),
+            protein: Math.round(macros.protein),
+            carbs: Math.round(macros.carbs),
+            fat: Math.round(macros.fat)
+        })
+        .select()
+        .single();
+
+    if (error) {
+        alert("Could not save food: " + error.message);
+        return null;
+    }
+
+    allEntries.push(data);
+    refreshViews();
+
+    return data;
+}
+
+async function addFood() {
 
     const foodName =
         document.getElementById("foodName").value;
@@ -103,44 +209,103 @@ function addFood() {
         return;
     }
 
-    totals.calories += food.calories;
-    totals.protein += food.protein;
-    totals.carbs += food.carbs;
-    totals.fat += food.fat;
+    const saved = await addFoodEntry(foodName, food);
 
-    updateTotals();
-    saveTotals();
-
-    addFoodCard(foodName, food);
+    if (saved) {
+        addFoodCard(foodName, food, saved.id);
+    }
 }
+
+async function addManualFood() {
+
+    const name =
+        document.getElementById("manualName").value;
+
+    if (!name) {
+        alert("Enter a food name");
+        return;
+    }
+
+    const macros = {
+        calories: Number(document.getElementById("manualCalories").value),
+        protein: Number(document.getElementById("manualProtein").value),
+        carbs: Number(document.getElementById("manualCarbs").value),
+        fat: Number(document.getElementById("manualFat").value)
+    };
+
+    const saved = await addFoodEntry(name, macros);
+
+    if (!saved) return;
+
+    document.getElementById("manualName").value = "";
+    document.getElementById("manualCalories").value = "";
+    document.getElementById("manualProtein").value = "";
+    document.getElementById("manualCarbs").value = "";
+    document.getElementById("manualFat").value = "";
+
+    document.getElementById("manualEntryForm").style.display = "none";
+}
+
+// ---------- REMOVING FOOD ----------
+
+async function removeFood(food) {
+
+    const { error } = await supabaseClient
+        .from("entries")
+        .delete()
+        .eq("id", food.id);
+
+    if (error) {
+        alert("Could not remove food: " + error.message);
+        return;
+    }
+
+    allEntries = allEntries.filter(entry => entry.id !== food.id);
+
+    // also remove the card from the "foodList" area if it's showing
+    const card = document.querySelector(
+        `#foodList [data-id="${food.id}"]`
+    );
+
+    if (card) card.remove();
+
+    refreshViews();
+}
+
+// ---------- DISPLAY ----------
 
 function updateTotals() {
 
     if (!document.getElementById("calories"))
-    return;
-
+        return;
 
     document.getElementById("calories").textContent =
         Math.round(totals.calories);
 
     document.getElementById("protein").textContent =
         Math.round(totals.protein);
-    
+
     updateGoals();
 }
 
-function addFoodCard(name, food) {
+function addFoodCard(name, food, id) {
 
     const foodList =
         document.getElementById("foodList");
+
+    if (!foodList) return;
 
     const div =
         document.createElement("div");
 
     div.className = "food-item";
 
+    if (id !== undefined) {
+        div.dataset.id = id;
+    }
+
     div.innerHTML = `
-        <strong>${name}</strong><br>
+        <strong>${escapeHTML(name)}</strong><br>
         Calories: ${food.calories}<br>
         Protein: ${food.protein}g<br>
         Carbs: ${food.carbs}g<br>
@@ -148,16 +313,6 @@ function addFoodCard(name, food) {
     `;
 
     foodList.appendChild(div);
-}
-
-function saveTotals() {
-
-    localStorage.setItem(
-        "totals",
-        JSON.stringify(totals)
-    );
-
-    saveDay();
 }
 
 function renderAddedFoods() {
@@ -175,59 +330,17 @@ function renderAddedFoods() {
             document.createElement("div");
 
         div.innerHTML = `
-            ${food.name}
+            ${escapeHTML(food.name)}
             <button class="remove-btn">
                 Remove
             </button>
         `;
 
-        const removeButton =
-            div.querySelector(".remove-btn");
-
-        removeButton.addEventListener(
-            "click",
-            () => {
-
-                totals.calories -= food.calories;
-                totals.protein -= food.protein;
-                totals.carbs -= food.carbs;
-                totals.fat -= food.fat;
-
-                addedFoods =
-                    addedFoods.filter(
-                        item => item !== food
-                    );
-
-                updateTotals();
-
-                localStorage.setItem(
-                    "addedFoods",
-                    JSON.stringify(addedFoods)
-                );
-
-                saveTotals();
-                saveDay();
-
-                renderAddedFoods();
-            }
-        );
+        div.querySelector(".remove-btn")
+            .addEventListener("click", () => removeFood(food));
 
         container.appendChild(div);
-
     });
-}
-
-function saveDay() {
-
-    dailyData[today] = {
-        totals: totals,
-        foods: addedFoods
-    };
-
-    localStorage.setItem(
-        "dailyData",
-        JSON.stringify(dailyData)
-    );
 }
 
 function renderHistory() {
@@ -277,10 +390,7 @@ function renderHistory() {
                 <br>
 
                 ${day.foods
-                    .map(
-                        food =>
-                            `• ${food.name}`
-                    )
+                    .map(food => `• ${escapeHTML(food.name)}`)
                     .join("<br>")}
             `;
 
@@ -288,24 +398,15 @@ function renderHistory() {
                 "click",
                 () => {
 
-                    if (
-                        details.style.display ===
-                        "none"
-                    ) {
+                    if (details.style.display === "none") {
 
-                        details.style.display =
-                            "block";
-
-                        header.textContent =
-                            "[-] " + date;
+                        details.style.display = "block";
+                        header.textContent = "[-] " + date;
 
                     } else {
 
-                        details.style.display =
-                            "none";
-
-                        header.textContent =
-                            "[+] " + date;
+                        details.style.display = "none";
+                        header.textContent = "[+] " + date;
                     }
                 }
             );
@@ -315,112 +416,6 @@ function renderHistory() {
 
             container.appendChild(dayCard);
         });
-}
-
-function addManualFood() {
-
-    const name =
-        document.getElementById("manualName").value;
-
-    const calories =
-        Number(
-            document.getElementById(
-                "manualCalories"
-            ).value
-        );
-
-    const protein =
-        Number(
-            document.getElementById(
-                "manualProtein"
-            ).value
-        );
-
-    const carbs =
-        Number(
-            document.getElementById(
-                "manualCarbs"
-            ).value
-        );
-
-    const fat =
-        Number(
-            document.getElementById(
-                "manualFat"
-            ).value
-        );
-
-    const macros = {
-        calories,
-        protein,
-        carbs,
-        fat
-    };
-
-    addToTotals(macros);
-
-    addedFoods.push({
-        name,
-        calories,
-        protein,
-        carbs,
-        fat
-    });
-
-    localStorage.setItem(
-        "addedFoods",
-        JSON.stringify(addedFoods)
-    );
-
-    renderAddedFoods();
-    saveDay();
-
-    document.getElementById("manualName").value = "";
-
-    document.getElementById("manualCalories").value = "";
-
-    document.getElementById("manualProtein").value = "";
-
-    document.getElementById("manualCarbs").value = "";
-
-    document.getElementById("manualFat").value = "";
-
-    document.getElementById(
-        "manualEntryForm"
-    ).style.display = "none";
-}
-
-function updateGoals() {
-
-    if (
-        !document.getElementById(
-            "remainingCalories"
-        )
-    ) {
-        return;
-    }
-
-    const caloriesRemaining =
-        calorieGoal - totals.calories;
-
-    const proteinRemaining =
-        proteinGoal - totals.protein;
-
-    document.getElementById(
-        "remainingCalories"
-    ).textContent =
-        Math.max(
-            0,
-            Math.round(caloriesRemaining)
-        );
-
-    document.getElementById(
-        "remainingProtein"
-    ).textContent =
-        Math.max(
-            0,
-            Math.round(proteinRemaining)
-        ) + "g";
 }
 
 function renderStats() {
@@ -433,113 +428,103 @@ function renderStats() {
 
     const avgCalories =
         days.reduce(
-            (sum, day) =>
-                sum + day.totals.calories,
+            (sum, day) => sum + day.totals.calories,
             0
         ) / days.length;
 
     const avgProtein =
         days.reduce(
-            (sum, day) =>
-                sum + day.totals.protein,
+            (sum, day) => sum + day.totals.protein,
             0
         ) / days.length;
 
-    document.getElementById(
-        "avgCalories"
-
-    ).textContent =
+    document.getElementById("avgCalories").textContent =
         Math.round(avgCalories);
 
-    document.getElementById(
-        "avgProtein"
-    ).textContent =
+    document.getElementById("avgProtein").textContent =
         Math.round(avgProtein) + "g";
 }
 
-function saveGoals() {
+// ---------- GOALS ----------
 
-    calorieGoal =
-        Number(
-            document.getElementById(
-                "calorieGoalInput"
-            ).value
-        );
+function updateGoals() {
 
-    proteinGoal =
-        Number(
-            document.getElementById(
-                "proteinGoalInput"
-            ).value
-        );
+    if (!document.getElementById("remainingCalories")) {
+        return;
+    }
 
-    localStorage.setItem(
-        "calorieGoal",
-        calorieGoal
-    );
+    const caloriesRemaining =
+        calorieGoal - totals.calories;
 
-    localStorage.setItem(
-        "proteinGoal",
-        proteinGoal
-    );
+    const proteinRemaining =
+        proteinGoal - totals.protein;
+
+    document.getElementById("remainingCalories").textContent =
+        Math.max(0, Math.round(caloriesRemaining));
+
+    document.getElementById("remainingProtein").textContent =
+        Math.max(0, Math.round(proteinRemaining)) + "g";
+}
+
+async function saveGoals() {
+
+    if (!currentUserId) {
+        alert("Please log in first");
+        return;
+    }
+
+    const newCalorieGoal =
+        Number(document.getElementById("calorieGoalInput").value);
+
+    const newProteinGoal =
+        Number(document.getElementById("proteinGoalInput").value);
+
+    if (!newCalorieGoal || !newProteinGoal) {
+        alert("Enter both goals");
+        return;
+    }
+
+    const { error } = await supabaseClient
+        .from("settings")
+        .upsert({
+            user_id: currentUserId,
+            calorie_goal: Math.round(newCalorieGoal),
+            protein_goal: Math.round(newProteinGoal)
+        });
+
+    if (error) {
+        alert("Could not save goals: " + error.message);
+        return;
+    }
+
+    calorieGoal = newCalorieGoal;
+    proteinGoal = newProteinGoal;
 
     updateGoals();
 
-    document.getElementById(
-        "calorieGoalInput"
-    ).value = "";
-
-    document.getElementById(
-        "proteinGoalInput"
-    ).value = "";
-
-    document.getElementById(
-        "goalSettings"
-    ).style.display = "none";
+    document.getElementById("calorieGoalInput").value = "";
+    document.getElementById("proteinGoalInput").value = "";
+    document.getElementById("goalSettings").style.display = "none";
 }
+
+// ---------- SHOW/HIDE TOGGLES ----------
 
 function toggleGoals() {
 
     const settings =
-        document.getElementById(
-            "goalSettings"
-        );
+        document.getElementById("goalSettings");
 
-    if (
-        settings.style.display ===
-        "block"
-    ) {
-
-        settings.style.display =
-            "none";
-
-    } else {
-
-        settings.style.display =
-            "block";
-    }
+    settings.style.display =
+        settings.style.display === "block" ? "none" : "block";
 }
 
 function toggleManualEntry() {
 
     const form =
-        document.getElementById(
-            "manualEntryForm"
-        );
+        document.getElementById("manualEntryForm");
 
-    if (
-        form.style.display ===
-        "block"
-    ) {
-
-        form.style.display =
-            "none";
-
-    } else {
-
-        form.style.display =
-            "block";
-    }
+    form.style.display =
+        form.style.display === "block" ? "none" : "block";
 }
 
 document.addEventListener(
@@ -547,43 +532,21 @@ document.addEventListener(
     () => {
 
         const goalSettings =
-            document.getElementById(
-                "goalSettings"
-            );
+            document.getElementById("goalSettings");
 
         if (goalSettings) {
-
-            goalSettings.style.display =
-                "none";
-
+            goalSettings.style.display = "none";
         }
 
         const manualEntryForm =
-            document.getElementById(
-                "manualEntryForm"
-            );
+            document.getElementById("manualEntryForm");
 
         if (manualEntryForm) {
-
-            manualEntryForm.style.display =
-                "none";
-
+            manualEntryForm.style.display = "none";
         }
-
     }
 );
 
-updateTotals();
-renderAddedFoods();
-updateGoals();
-if (
-    document.getElementById("history")
-) {
-    renderHistory();
-}
-
-if (
-    document.getElementById("avgCalories")
-) {
-    renderStats();
-}
+// ---------- STARTUP ----------
+// Draw an empty state first; the login listener above loads real data
+refreshViews();
