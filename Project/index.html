@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cannon Macro Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- HEADER -->
+
+    <div class="header-card">
+
+        <h1>Cannon Macro Tracker</h1>
+
+        <p class="subtitle">
+            Track calories and protein from Cannon
+        </p>
+
+        <a href="history.html">
+            <button class="history-btn">
+                History
+            </button>
+        </a>
+
+    </div>
+
+
+
+    <!-- DAILY PROGRESS -->
+
+    <div class="card">
+
+        <h2>Daily Progress</h2>
+
+        <div class="progress-section">
+
+            <h3>Calories</h3>
+
+            <p>
+                <span id="calories">0</span>
+            </p>
+
+            <p>
+                Remaining:
+                <span id="remainingCalories"></span>
+            </p>
+
+        </div>
+
+        <div class="progress-section">
+
+            <h3>Protein</h3>
+
+            <p>
+                <span id="protein">0</span>g
+            </p>
+
+            <p>
+                Remaining:
+                <span id="remainingProtein"></span>
+            </p>
+
+        </div>
+
+        <button onclick="toggleGoals()">
+            Adjust Goals
+        </button>
+
+        <div id="goalSettings">
+
+            <h3>Goal Settings</h3>
+
+            <input
+                id="calorieGoalInput"
+                type="number"
+                placeholder="Calories Goal"
+            >
+
+            <input
+                id="proteinGoalInput"
+                type="number"
+                placeholder="Protein Goal"
+            >
+
+            <button onclick="saveGoals()">
+                Save Goals
+            </button>
+
+            <button onclick="toggleGoals()">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- TODAY'S LOG -->
+
+    <div class="card">
+
+        <h2>Today's Log</h2>
+
+        <div id="addedFoods"></div>
+
+    </div>
+
+
+
+    <!-- QUICK ACTIONS -->
+
+    <div class="card">
+
+        <h2>Quick Actions</h2>
+
+        <button onclick="toggleManualEntry()">
+            Manual Entry
+        </button>
+
+        <div id="manualEntryForm">
+
+            <input
+                id="manualName"
+                placeholder="Food Name"
+            >
+
+            <input
+                id="manualCalories"
+                type="number"
+                placeholder="Calories"
+            >
+
+            <input
+                id="manualProtein"
+                type="number"
+                placeholder="Protein"
+            >
+
+            <input
+                id="manualCarbs"
+                type="number"
+                placeholder="Carbs"
+            >
+
+            <input
+                id="manualFat"
+                type="number"
+                placeholder="Fat"
+            >
+
+            <button onclick="addManualFood()">
+                Add Food
+            </button>
+
+            <button onclick="toggleManualEntry()">
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- SEARCH -->
+
+    <div class="card">
+
+        <h2>Search Cannon Foods</h2>
+
+        <input
+            type="text"
+            id="searchBox"
+            placeholder="Search foods..."
+        >
+
+    </div>
+
+
+
+    <!-- MENU -->
+
+    <div class="card">
+
+        <h2>Today's Menu</h2>
+
+        <button onclick="getMenu()">
+            Load Today's Menu
+        </button>
+
+    </div>
+
+
+
+    <!-- MENU RESULTS -->
+
+    <div id="foodContainer"></div>
+
+
+
+    <script src="app.js"></script>
+    <script src="token-test.js"></script>
+
+</body>
+</html>

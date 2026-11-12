@@ -1,0 +1,226 @@
+/* ---------- PAGE ---------- */
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f7fa;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    color: #1f2937;
+}
+
+/* ---------- CARDS ---------- */
+
+.card,
+.header-card,
+.station-section,
+.history-day {
+
+    background: white;
+
+    border-radius: 18px;
+
+    padding: 20px;
+
+    margin-bottom: 20px;
+
+    box-shadow:
+        0 4px 12px rgba(
+            0,
+            0,
+            0,
+            0.08
+        );
+}
+
+/* ---------- HEADER ---------- */
+
+.header-card {
+
+    text-align: center;
+
+    position: relative;
+}
+
+.header-card h1 {
+
+    margin-bottom: 5px;
+
+    color: #002E5D;
+
+    font-size: 2.2rem;
+}
+
+.subtitle {
+
+    color: #6b7280;
+
+    margin-bottom: 20px;
+}
+
+.history-btn {
+
+    background: #0062ff;
+
+    color: white;
+
+    border: none;
+
+    padding: 10px 18px;
+
+    border-radius: 10px;
+}
+
+/* ---------- BUTTONS ---------- */
+
+button {
+
+    background: #0062ff;
+
+    color: white;
+
+    border: none;
+
+    padding: 12px 18px;
+
+    border-radius: 10px;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+}
+
+button:hover {
+
+    background: #0051d4;
+}
+
+/* ---------- INPUTS ---------- */
+
+input,
+select {
+
+    width: 100%;
+
+    padding: 12px;
+
+    margin-top: 8px;
+
+    margin-bottom: 12px;
+
+    border: 1px solid #ddd;
+
+    border-radius: 10px;
+
+    box-sizing: border-box;
+}
+
+/* ---------- SEARCH ---------- */
+
+#searchBox {
+
+    font-size: 1rem;
+}
+
+/* ---------- GOALS ---------- */
+
+.progress-section {
+
+    padding: 10px 0;
+
+    border-bottom: 1px solid #eee;
+}
+
+.progress-section:last-child {
+
+    border-bottom: none;
+}
+
+.progress-section h3 {
+
+    margin-bottom: 5px;
+
+    color: #002E5D;
+}
+
+/* ---------- TODAY'S LOG ---------- */
+
+#addedFoods div {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 10px;
+
+    border-bottom: 1px solid #eee;
+}
+
+/* ---------- MENU STATIONS ---------- */
+
+.station-section {
+
+    margin-top: 15px;
+}
+
+.station-section h2 {
+
+    cursor: pointer;
+
+    color: #002E5D;
+
+    font-size: 1.15rem;
+}
+
+/* ---------- FOOD CARDS ---------- */
+
+.food-card {
+
+    padding: 15px;
+
+    margin-top: 10px;
+
+    border-radius: 12px;
+
+    background: #fafafa;
+
+    border: 1px solid #eee;
+}
+
+.food-card h3 {
+
+    margin-top: 0;
+
+    color: #002E5D;
+}
+
+/* ---------- HIDDEN PANELS ---------- */
+
+#goalSettings,
+#manualEntryForm {
+
+    margin-top: 20px;
+}
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 700px) {
+
+    body {
+
+        padding: 12px;
+    }
+
+    .header-card h1 {
+
+        font-size: 1.8rem;
+    }
+
+    button {
+
+        width: 100%;
+    }
+
+}

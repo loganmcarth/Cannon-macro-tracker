@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>History</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<h1>History</h1>
+
+<a href="index.html">
+    <button class="history-btn">
+        Back to Home
+    </button>
+</a>
+
+<h2>Weekly Stats</h2>
+
+<p>
+    Average Calories:
+    <span id="avgCalories"></span>
+</p>
+
+<p>
+    Average Protein:
+    <span id="avgProtein"></span>
+</p>
+
+<div id="history"></div>
+
+<script src="app.js"></script>
+<script>
+    renderHistory();
+    renderStats();
+</script>
+
+</body>
+</html>
