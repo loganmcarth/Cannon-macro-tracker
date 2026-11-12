@@ -1,8 +1,8 @@
 const supabaseUrl =
-    "YOUR_PROJECT_URL";
+    "https://weltxmtqzqhkupauxice.supabase.co";
 
 const supabaseKey =
-    "YOUR_ANON_KEY";
+    "sb_publishable_rI4tnemwBdlsMECw8i7C5A_v7a8wk1g";
 
 const supabase =
     window.supabase.createClient(
