@@ -4,7 +4,7 @@ async function getMenu() {
 
         const menuResponse =
             await fetch(
-                "http://localhost:3000/menu"
+                "https://cannon-macro-backend.onrender.com/menu"
             );
 
         console.log("Menu status:", menuResponse.status);
